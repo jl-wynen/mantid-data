@@ -38,5 +38,6 @@ def create(registry_file: Optional[Union[Path, str]] = None) -> pooch.Pooch:
     if registry_file:
         inv.load_registry(registry_file)
     else:
-        inv.load_registry(resources.path('mantiddata', 'registry.txt'))
+        with resources.path('mantiddata', 'registry.txt') as path:
+            inv.load_registry(path)
     return inv
