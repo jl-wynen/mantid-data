@@ -9,6 +9,20 @@ import pooch
 
 
 def create(registry_file: Optional[Union[Path, str]] = None) -> pooch.Pooch:
+    """
+    Create a pooch.Pooch object for Mantid's data files.
+
+    Parameters
+    ----------
+    registry_file:
+        Path of a pooch registry file.
+        Defaults to the file bundled with mantiddata.
+
+    Returns
+    -------
+    :
+        A pooch.Pooch instance.
+    """
     inv = pooch.create(
         path=pooch.os_cache('mantid/test_data'),
         env='MANTID_DATA_DIR',

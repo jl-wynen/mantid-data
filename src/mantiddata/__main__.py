@@ -7,7 +7,7 @@ from pathlib import Path
 from .buildregistry import build_registry
 from . import create
 
-_EPILOG = 'See https://github.com/jl-wynen/mantid-data'
+_EPILOG = 'See also https://github.com/jl-wynen/mantid-data'
 
 
 def generate(args: Namespace) -> None:
@@ -22,9 +22,6 @@ def fetch(args: Namespace) -> None:
             print(f.read())
     else:
         print(path)
-
-
-_COMMANDS = {'generate': generate, 'fetch': fetch}
 
 
 def main():
@@ -63,7 +60,8 @@ def main():
                               action='store_true')
 
     args = parser.parse_args()
-    _COMMANDS[args.command](args)
+    commands = {'generate': generate, 'fetch': fetch}
+    commands[args.command](args)
 
 
 if __name__ == '__main__':

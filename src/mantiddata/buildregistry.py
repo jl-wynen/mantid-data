@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 mantiddata contributors (https://github.com/mantid-data)
 
+"""
+Parse Mantid source tree to construct a registry file for pooch.
+"""
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,34 +19,36 @@ MANTID_DATA_BASE_URL = 'https://testdata.mantidproject.org/ftp/external-data/MD5
 
 
 @dataclass
-class ChecksumFile:
+class _ChecksumFile:
     path: Path
     name: str
 
 
-def _checksum_files_from_dir(folder: Path, prefix: Path) -> Iterable[ChecksumFile]:
-    yield from map(lambda path: ChecksumFile(path=path, name=str(prefix / path.stem)),
+def _checksum_files_from_dir(folder: Path, prefix: Path) -> Iterable[_ChecksumFile]:
+    yield from map(lambda path: _ChecksumFile(path=path, name=str(prefix / path.stem)),
                    filter(lambda path: path.suffix == '.md5', folder.iterdir()))
     for sub_folder in filter(lambda path: path.is_dir(), folder.iterdir()):
         yield from _checksum_files_from_dir(sub_folder, prefix / sub_folder.stem)
 
 
 def _local_checksum_files(base_path: Path,
-                          sub_dirs: Sequence[Path]) -> Iterable[ChecksumFile]:
+                          sub_dirs: Sequence[Path]) -> Iterable[_ChecksumFile]:
     for folder in map(lambda d: base_path / d, sub_dirs):
         yield from _checksum_files_from_dir(folder, Path(''))
 
 
-def read_md5_file(filename: Path) -> str:
+def _read_md5_file(filename: Path) -> str:
     with filename.open('r') as f:
         return f.read().strip()
 
 
-def build_registry_from(*, base_path: Path, sub_dirs: Sequence[Path],
-                        out_file: Path) -> None:
+def _build_registry_from(*, base_path: Path, sub_dirs: Sequence[Path],
+                         out_file: Path) -> None:
     print('Creating registry from', base_path)
-    reg = {f.name: read_md5_file(f.path)
-           for f in _local_checksum_files(base_path, sub_dirs)}
+    reg = {
+        f.name: _read_md5_file(f.path)
+        for f in _local_checksum_files(base_path, sub_dirs)
+    }
     with out_file.open('w') as f:
         for name, file_hash in reg.items():
             fixed_name = name.replace(" ", "_")
@@ -78,8 +84,26 @@ def _ensure_input_dir(input_dir: Optional[Path]) -> Path:
             yield d / MANTID_DATA_DIR
 
 
-def build_registry(*, input_dir: Optional[Path], output_file: Path) -> None:
+def build_registry(*,
+                   output_file: Path,
+                   input_dir: Optional[Path] = None,
+                   sub_dirs: Optional[Sequence[Path]] = None) -> None:
+    """
+    Construct the registry file.
+
+    Parameters
+    ----------
+    output_file:
+        Path of the resulting registry file.
+    input_dir:
+        Root of a clone of the Mantid repository.
+        The repository is cloned into temporarily if input_dir is None.
+    sub_dirs:
+        Directories in input_dir/buildregistry.MANTID_DIR that contain data files.
+        By default, all test data directories are searched.
+    """
     with _ensure_input_dir(input_dir) as input_dir:
-        build_registry_from(base_path=input_dir,
-                            sub_dirs=MANTID_DATA_SUBDIRS,
-                            out_file=output_file)
+        _build_registry_from(
+            base_path=input_dir,
+            sub_dirs=sub_dirs if sub_dirs is not None else MANTID_DATA_SUBDIRS,
+            out_file=output_file)
