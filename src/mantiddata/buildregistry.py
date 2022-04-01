@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 mantiddata contributors (https://github.com/mantid-data)
 
-import argparse
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +27,8 @@ def _checksum_files_from_dir(folder: Path, prefix: Path) -> Iterable[ChecksumFil
         yield from _checksum_files_from_dir(sub_folder, prefix / sub_folder.stem)
 
 
-def _local_checksum_files(base_path: Path, sub_dirs: Sequence[Path]) -> Iterable[ChecksumFile]:
+def _local_checksum_files(base_path: Path,
+                          sub_dirs: Sequence[Path]) -> Iterable[ChecksumFile]:
     for folder in map(lambda d: base_path / d, sub_dirs):
         yield from _checksum_files_from_dir(folder, Path(''))
 
@@ -38,19 +38,25 @@ def read_md5_file(filename: Path) -> str:
         return f.read().strip()
 
 
-def build_registry(out_file: Path, base_path: Path, sub_dirs: Sequence[Path]) -> None:
+def build_registry_from(*, base_path: Path, sub_dirs: Sequence[Path],
+                        out_file: Path) -> None:
     print('Creating registry from', base_path)
     reg = {f.name: read_md5_file(f.path)
            for f in _local_checksum_files(base_path, sub_dirs)}
     with out_file.open('w') as f:
         for name, file_hash in reg.items():
-            f.write(f'{name.replace(" ", "_")} md5:{file_hash} {MANTID_DATA_BASE_URL}{file_hash}\n')
+            fixed_name = name.replace(" ", "_")
+            url = MANTID_DATA_BASE_URL + file_hash
+            f.write(f'{fixed_name} md5:{file_hash} {url}\n')
 
 
 def _checkout_mantid_data(target_dir: Path):
-    subprocess.check_call(['git', 'clone', '--depth=1', '--filter=blob:none', '--sparse', MANTID_REPO_URL,
-                           target_dir])
-    subprocess.check_call(['git', 'sparse-checkout', 'set', MANTID_DATA_DIR], cwd=target_dir)
+    subprocess.check_call([
+        'git', 'clone', '--depth=1', '--filter=blob:none', '--sparse', MANTID_REPO_URL,
+        target_dir
+    ])
+    subprocess.check_call(['git', 'sparse-checkout', 'set', MANTID_DATA_DIR],
+                          cwd=target_dir)
 
 
 @contextmanager
@@ -72,18 +78,8 @@ def _ensure_input_dir(input_dir: Optional[Path]) -> Path:
             yield d / MANTID_DATA_DIR
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=Path, help='Input directory (base of Mantid repo)', default=None)
-    parser.add_argument('-o', '--output', type=Path, help='Output registry file', default='registry.txt')
-    return parser.parse_args()
-
-
-def main() -> None:
-    args = parse_args()
-    with _ensure_input_dir(args.input) as input_dir:
-        build_registry(args.output, input_dir, MANTID_DATA_SUBDIRS)
-
-
-if __name__ == '__main__':
-    main()
+def build_registry(*, input_dir: Optional[Path], output_file: Path) -> None:
+    with _ensure_input_dir(input_dir) as input_dir:
+        build_registry_from(base_path=input_dir,
+                            sub_dirs=MANTID_DATA_SUBDIRS,
+                            out_file=output_file)
