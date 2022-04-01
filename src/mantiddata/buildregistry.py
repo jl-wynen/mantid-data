@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright (c) 2022 mantiddata contributors (https://github.com/mantid-data)
-
 """
 Parse Mantid source tree to construct a registry file for pooch.
 """
