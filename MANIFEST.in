@@ -1,2 +1,2 @@
 include LICENSE
-include src/mantid-data/registry.txt
+include src/mantiddata/registry.txt
