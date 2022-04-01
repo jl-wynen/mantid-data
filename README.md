@@ -33,7 +33,7 @@ The concrete path will be different on your system.
 
 Or use
 ```shell
-$ mantiddata fetch -p PG3_characterization_2011_08_31-HR.txt
+$ mantiddata fetch -c PG3_characterization_2011_08_31-HR.txt
 ```
 to print the file's contents.
 
